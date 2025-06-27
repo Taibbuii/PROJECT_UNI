@@ -39,13 +39,100 @@ _, otsu_img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 - Công thức toán học:
 $ Ngưỡng cục bộ: T(x, y) = \text{mean}(N(x, y)) - \text{offset} $
 * Trong đó:
-- N(x, y) $: Vùng lân cận pixel (x, y).
-- \text{offset} $: Hằng số (thường 10).
+- N(x, y): Vùng lân cận pixel (x, y).
+- \text{offset}: Hằng số (thường 10).
 - Ví dụ:
 + Ảnh có vùng sáng (cường độ 200) và vùng tối (cường độ 50) do bóng. Ngưỡng cục bộ tại vùng tối có thể là 60, tại vùng sáng là 180, tách chính xác hơn Otsu.
 - Code:
 ```python
-import cv2
-img = cv2.imread('dalat.jpg', 0)
-_, otsu_img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+from PIL import Image
+import numpy as np
+from skimage.filters import threshold_local
+import matplotlib.pyplot as plt
+
+data = Image.open('dalat.jpg').convert('L')
+a = np.array(data)
+b = threshold_local(a, block_size=39, offset=10)
+b = a > b
+plt.imshow(b, cmap='gray')
+plt.show()
+```
+### 2. Phân vùng theo Region
+- Mục đích: Nhóm pixel có đặc điểm giống nhau thành vùng.
+### 3. Biến đổi đối tượng trong ảnh
+#### 3.1. Sử dụng binary_dilation
+Mở rộng vùng sáng, thêm pixel ở biên.
+- Công thức toán học:
++ $ A \oplus B = \{ z \ | \ (B)_z \cap A \neq \emptyset \} $
++ $ A $: Ảnh nhị phân.
++ $ B $: Phần tử cấu trúc (structuring element).
+- Ví dụ:
++ Vùng sáng (hình tròn) được mở rộng thêm 50 pixel ở biên sau 50 lần lặp, làm tròn to hơn.
+```python:
+from PIL import Image
+import numpy as np
+import scipy.ndimage as nd
+import matplotlib.pyplot as plt
+
+data = Image.open('dil_img.gif').convert('L')
+b = nd.binary_dilation(data, iterations=50)
+c = Image.fromarray(b)
+plt.imshow(c, cmap='gray')
+plt.show()
+```
+#### 3.2. Sử dụng binary_opening
+- Mục đích: Loại bỏ nhiễu nhỏ và làm mịn vùng đối tượng bằng cách kết hợp erosion và dilation.
+- Nguyên lý: Thực hiện erosion trước, sau đó dilation để khôi phục hình dạng.
+- Code chính:
+```python:
+from PIL import Image
+import numpy as np
+import scipy.ndimage as nd
+import matplotlib.pyplot as plt
+
+data = Image.open('dil_img.gif').convert('L')
+b = nd.binary_opening(data, iterations=50)
+c = Image.fromarray(b)
+plt.imshow(c, cmap='gray')
+plt.show()
+```
+#### 3.3. Sử dụng binary_erosion
+- Mục đích: Thu hẹp vùng đối tượng bằng cách loại bỏ pixel ở biên.
+- Nguyên lý: Loại bỏ các pixel ở rìa vùng sáng dựa trên phần tử cấu trúc.
+- Code chính:
+```python:
+from PIL import Image
+import numpy as np
+import scipy.ndimage as nd
+import matplotlib.pyplot as plt
+
+data = Image.open('dil_img.gif').convert('L')
+structure = [[0, 1, 0], [1, 1, 1], [0, 1, 0]]
+b = nd.binary_erosion(data, structure, iterations=50)
+c = Image.fromarray(b)
+plt.imshow(c, cmap='gray')
+plt.show()
+```
+#### 3.4. Sử dụng binary_closing
+- Mục đích: Lấp đầy các lỗ nhỏ trong vùng đối tượng, làm mịn biên.
+- Nguyên lý: Thực hiện dilation trước, sau đó erosion.
+- Code chính:
+```python:
+from PIL import Image
+import numpy as np
+import scipy.ndimage as nd
+import matplotlib.pyplot as plt
+
+data = Image.open('dil_img.gif').convert('L')
+b = nd.binary_closing(data, iterations=50)
+c = Image.fromarray(b)
+plt.imshow(c, cmap='gray')
+plt.show()
+```
+## Cấu trúc file:
+```
+├── main.ipynb        # Code chính
+├── fruit.jpg         # Ảnh cho histogram
+├── dil_img.gif       # Ảnh cho morphological operations
+├── README.md         # Hướng dẫn
 ```
